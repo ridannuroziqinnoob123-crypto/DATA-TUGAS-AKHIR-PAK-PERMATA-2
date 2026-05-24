@@ -7,8 +7,272 @@
     
     <!-- LIBRARIES CDN (Hanya perlu internet saat pertama kali buka) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Offline Single-File</title>
+    <style>
+        :root {
+            --bg: #f4f6f9; --sidebar: #2c3e50; --sidebar-hover: #34495e;
+            --sidebar-text: #ecf0f1; --card: #fff; --text: #2c3e50;
+            --text2: #7f8c8d; --primary: #3498db; --success: #2ecc71;
+            --warn: #f1c40f; --danger: #e74c3c; --border: #e0e6ed;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08); --trans: all 0.3s;
+        }
+        .dark {
+            --bg: #121418; --sidebar: #1a1d24; --sidebar-hover: #242830;
+            --sidebar-text: #cbd5e1; --card: #1e222b; --text: #e2e8f0;
+            --text2: #94a3b8; --border: #334155; --shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; transition:var(--trans); }
+        aside { width:240px; background:var(--sidebar); color:var(--sidebar-text); padding:1.5rem 1rem; display:flex; flex-direction:column; position:fixed; height:100%; left:-250px; transition:var(--trans); z-index:100; }
+        aside.open { left:0; box-shadow:4px 0 15px rgba(0,0,0,0.3); }
+        .brand { font-size:1.2rem; font-weight:700; margin-bottom:2rem; display:flex; gap:0.5rem; align-items:center; }
+        .nav { list-style:none; flex:1; }
+        .nav a { display:flex; gap:0.6rem; padding:0.7rem 0.9rem; border-radius:8px; color:var(--sidebar-text); text-decoration:none; cursor:pointer; transition:var(--trans); }
+        .nav a:hover, .nav a.act { background:var(--sidebar-hover); }
+        main { flex:1; margin-left:0; display:flex; flex-direction:column; min-height:100vh; }
+        header { background:var(--card); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; }
+        .btn { background:none; border:1px solid var(--border); color:var(--text); padding:0.5rem 0.8rem; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:var(--trans); font-size:0.85rem; }
+        .btn:hover { background:var(--bg); }
+        .content { padding:1.5rem; overflow-y:auto; }
+        .filter { display:flex; flex-wrap:wrap; gap:1rem; background:var(--card); padding:1rem; border-radius:10px; box-shadow:var(--shadow); margin-bottom:1.5rem; }
+        .fgrp { display:flex; flex-direction:column; gap:0.3rem; }
+        .fgrp label { font-size:0.8rem; color:var(--text2); }
+        select { padding:0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); min-width:160px; }
+        .kpi { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .kpi-card { background:var(--card); padding:1rem; border-radius:10px; box-shadow:var(--shadow); border-left:4px solid var(--primary); position:relative; cursor:grab; }
+        .kpi-card h3 { font-size:0.8rem; color:var(--text2); margin-bottom:0.3rem; }
+        .kpi-card .val { font-size:1.5rem; font-weight:700; margin-bottom:0.2rem; }
+        .kpi-card .trend { font-size:0.75rem; color:var(--success); display:flex; align-items:center; gap:0.3rem; }
+        .drag { position:absolute; top:8px; right:8px; color:var(--text2); cursor:grab; opacity:0.5; }
+        .tabs { display:flex; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid var(--border); }
+        .tab { padding:0.6rem 1rem; background:none; border:none; cursor:pointer; color:var(--text2); font-weight:500; position:relative; }
+        .tab.act { color:var(--primary); }
+        .tab.act::after { content:''; position:absolute; bottom:-1px; left:0; width:100%; height:3px; background:var(--primary); }
+        .pane { display:none; animation:fade 0.3s; }
+        .pane.act { display:block; }
+        @keyframes fade { from{opacity:0; transform:translateY(5px)} to{opacity:1; transform:translateY(0)} }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .box { background:var(--card); padding:1rem; border-radius:10px; box-shadow:var(--shadow); position:relative; cursor:grab; }
+        .box canvas { width:100%; height:250px; display:block; }
+        .tbl { background:var(--card); padding:1rem; border-radius:10px; box-shadow:var(--shadow); overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; min-width:500px; }
+        th,td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+        th { background:var(--primary); color:#fff; }
+        tr:hover { background:var(--bg); }
+        .menu-btn { display:none; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text); }
+        @media(min-width:900px){ aside{position:static; left:0; box-shadow:none;} .menu-btn{display:none;} main{margin-left:0;} }
+        @media(max-width:899px){ .menu-btn{display:block;} }
+        @media print { .no-print{display:none!important;} aside,.filter,.tabs,.btn{display:none!important;} main{margin:0;} .pane{display:block!important;} .grid{grid-template-columns:1fr 1fr;} .box canvas{height:200px;} }
+    </style>
+</head>
+<body>
+
+<aside id="sb">
+    <div class="brand">📊 OfflineDash</div>
+    <ul class="nav">
+        <li><a class="act" data-t="home">🏠 Dashboard</a></li>
+        <li><a data-t="ana">🔍 Analisis</a></li>
+        <li><a data-t="set">⚙️ Pengaturan</a></li>
+    </ul>
+    <div style="margin-top:auto;font-size:0.75rem;opacity:0.6;padding-top:1rem;">&copy; 2026 Native Engine</div>
+</aside>
+
+<main>
+    <header class="no-print">
+        <button class="menu-btn" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
+        <h2>📈 Ringkasan Penjualan</h2>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn" onclick="reset()">🔄 Reset</button>
+            <button class="btn" onclick="window.print()">🖨️ PDF/Print</button>
+            <button class="btn" onclick="expCSV()">📥 CSV/Excel</button>
+            <button class="btn" id="thm">🌙</button>
+        </div>
+    </header>
+
+    <div class="content">
+        <div class="filter no-print">
+            <div class="fgrp"><label>📅 Periode</label><select id="m"><option value="all">Semua</option><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option></select></div>
+            <div class="fgrp"><label>🏷️ Kategori</label><select id="c"><option value="all">Semua</option><option value="Elektronik">Elektronik</option><option value="Fashion">Fashion</option><option value="Makanan">Makanan</option><option value="Buku">Buku</option><option value="Olahraga">Olahraga</option></select></div>
+        </div>
+
+        <div class="kpi" id="kpi">
+            <div class="kpi-card" style="border-left:4px solid var(--primary)" draggable="true"><span class="drag">⋮⋮</span><h3>💰 Pendapatan</h3><div class="val" id="v1">Rp 0</div><div class="trend">📈 +12.4%</div></div>
+            <div class="kpi-card" style="border-left:4px solid var(--success)" draggable="true"><span class="drag">⋮⋮</span><h3>📦 Unit Terjual</h3><div class="val" id="v2">0</div><div class="trend">✅ Stok aman</div></div>
+            <div class="kpi-card" style="border-left:4px solid var(--warn)" draggable="true"><span class="drag">⋮⋮</span><h3>📊 Rata-rata/Kategori</h3><div class="val" id="v3">0</div><div class="trend" style="color:var(--text2)">🧮 Stabil</div></div>
+            <div class="kpi-card" style="border-left:4px solid var(--danger)" draggable="true"><span class="drag">⋮⋮</span><h3>🚀 Tren</h3><div class="val" id="v4">0%</div><div class="trend">📈 Positif</div></div>
+        </div>
+
+        <div class="tabs no-print">
+            <button class="tab act" data-t="home">Dashboard</button>
+            <button class="tab" data-t="ana">Analisis</button>
+            <button class="tab" data-t="set">Pengaturan</button>
+        </div>
+
+        <div class="pane act" id="p-home">
+            <div class="grid" id="chGrid">
+                <div class="box" draggable="true"><canvas id="cp"></canvas></div>
+                <div class="box" draggable="true"><canvas id="cb"></canvas></div>
+                <div class="box" draggable="true"><canvas id="cl"></canvas></div>
+            </div>
+            <div class="tbl">
+                <table id="dt">
+                    <thead><tr><th>Kategori</th><th>Unit</th><th>Pendapatan (Rp)</th><th>Kontribusi</th></tr></thead>
+                    <tbody id="tb"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="pane" id="p-ana">
+            <div class="box"><canvas id="cs" style="height:280px"></canvas></div>
+            <p style="color:var(--text2);margin-top:0.8rem;font-size:0.9rem;">Kategori <strong>Elektronik</strong> margin tinggi/volume moderat. <strong>Makanan</strong> volume tinggi/margin tipis. Disarankan bundling produk.</p>
+        </div>
+
+        <div class="pane" id="p-set">
+            <div class="box" style="max-width:400px">
+                <h3 style="margin-bottom:1rem">⚙️ Preferensi</h3>
+                <label style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem"><input type="checkbox" id="autoref" checked> Simpan posisi otomatis</label>
+                <button class="btn" onclick="savePos()">💾 Simpan Layout</button>
+                <button class="btn" style="background:var(--danger);color:#fff;margin-top:0.5rem" onclick="clearPos()">🗑️ Reset Layout</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+const D={
+  cats:['Elektronik','Fashion','Makanan','Buku','Olahraga'],
+  mo:['Jan','Feb','Mar','Apr','Mei','Jun'],
+  u:{E:[80,95,110,120,130,145],F:[60,65,70,75,85,90],M:[45,48,50,55,60,65],B:[20,22,25,28,30,32],O:[15,16,18,20,22,25]},
+  r:{E:[24,28.5,33,36,39,43.5],F:[12,13,14,15,17,18],M:[6.75,7.2,7.5,8.25,9,9.75],B:[3,3.3,3.75,4.2,4.5,4.8],O:[2.25,2.4,2.7,3,3.3,3.75]}
+};
+const K={E:'Elektronik',F:'Fashion',M:'Makanan',B:'Buku',O:'Olahraga'};
+let st={m:'all',c:'all'};
+const cols=['#3498db','#e74c3c','#f1c40f','#2ecc71','#9b59b6'];
+
+function calc(){
+  let U={},R={},tu=0,tr=0;
+  const rng=st.m==='all'?[0,1,2,3,4,5]:[+st.m];
+  D.cats.forEach(c=>{let u=0,r=0;rng.forEach(m=>{u+=D.u[c[0]][m];r+=D.r[c[0]][m]});U[c]=u;R[c]=r;});
+  const fc=st.c==='all'?D.cats:[st.c];
+  fc.forEach(c=>{tu+=U[c];tr+=R[c];});
+  const pcts=fc.map(c=>tu?((U[c]/tu)*100).toFixed(1):0);
+  return {U,R,tu,tr,fc,pcts,avg:fc.length?Math.round(tu/fc.length):0};
+}
+
+function upd(){
+  const m=calc();
+  document.getElementById('v1').textContent=`Rp ${(m.tr*1e6).toLocaleString('id-ID')}`;
+  document.getElementById('v2').textContent=m.tu.toLocaleString('id-ID');
+  document.getElementById('v3').textContent=m.avg.toLocaleString('id-ID');
+  document.getElementById('v4').textContent=st.m==='all'?'+12.4%':'+8.7%';
+  const tb=document.getElementById('tb');tb.innerHTML='';
+  m.fc.forEach((c,i)=>{
+    tb.innerHTML+=`<tr><td><strong>${c}</strong></td><td>${m.U[c].toLocaleString('id-ID')}</td><td>Rp ${(m.R[c]*1e6).toLocaleString('id-ID')}</td><td style="color:var(--primary);font-weight:600">${m.pcts[i]}%</td></tr>`;
+  });
+  drawAll(m);
+}
+
+// 🎨 CANVAS CHARTS (VANILLA JS)
+function drawAll(m){
+  const fc=m.fc, u=fc.map(c=>m.U[c]), r=fc.map(c=>m.R[c]);
+  drawPie('cp',fc,u);
+  drawBar('cb',fc,u);
+  drawLine('cl',D.mo, D.mo.map((_,i)=>fc.reduce((s,c)=>s+D.u[c[0]][i],0)));
+  drawScatter('cs',fc.map(c=>({x:Math.round((m.R[c]/m.U[c])*1e6),y:m.U[c],l:c})));
+}
+
+function drawPie(id,labels,data){
+  const cv=document.getElementById(id),ctx=cv.getContext('2d');
+  cv.width=cv.parentElement.clientWidth-20;cv.height=250;ctx.clearRect(0,0,cv.width,cv.height);
+  const tot=data.reduce((a,b)=>a+b,0), cx=cv.width/2, cy=120, rad=90;
+  let ang=-Math.PI/2;
+  labels.forEach((l,i)=>{
+    const sl=(data[i]/tot)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,rad,ang,ang+sl);ctx.closePath();
+    ctx.fillStyle=cols[i%cols.length];ctx.fill();ctx.stroke();ang+=sl;
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text');
+    ctx.font='11px sans-serif';
+    const mx=cx+(rad+20)*Math.cos(ang-sl/2), my=cy+(rad+20)*Math.sin(ang-sl/2);
+    ctx.fillText(`${l}: ${data[i]}`,mx-15,my);
+  });
+}
+
+function drawBar(id,labels,data){
+  const cv=document.getElementById(id),ctx=cv.getContext('2d');
+  cv.width=cv.parentElement.clientWidth-20;cv.height=250;ctx.clearRect(0,0,cv.width,cv.height);
+  const max=Math.max(...data)*1.2, bw=(cv.width-40)/labels.length;
+  ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--border');ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(40,20+i*50);ctx.lineTo(cv.width-10,20+i*50);ctx.stroke();ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text2');ctx.font='10px sans-serif';ctx.fillText(Math.round(max-max*i/4),5,25+i*50);}
+  labels.forEach((l,i)=>{
+    const h=(data[i]/max)*200,x=50+i*bw,b=bw*0.6;
+    ctx.fillStyle=cols[i%cols.length];ctx.beginPath();ctx.roundRect(x,200-h+20,b,h,4);ctx.fill();
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text');ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(l,x+b/2,245);ctx.fillText(data[i],x+b/2,200-h+10);ctx.textAlign='start';
+  });
+}
+
+function drawLine(id,labels,data){
+  const cv=document.getElementById(id),ctx=cv.getContext('2d');
+  cv.width=cv.parentElement.clientWidth-20;cv.height=250;ctx.clearRect(0,0,cv.width,cv.height);
+  const max=Math.max(...data)*1.2, step=(cv.width-60)/labels.length;
+  ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--border');ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(50,20+i*50);ctx.lineTo(cv.width-10,20+i*50);ctx.stroke();ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text2');ctx.font='10px sans-serif';ctx.fillText(Math.round(max-max*i/4),5,25+i*50);}
+  ctx.beginPath();ctx.moveTo(50,200-(data[0]/max)*180+20);
+  labels.forEach((l,i)=>{const x=60+i*step,y=200-(data[i]/max)*180+20;ctx.lineTo(x,y);});
+  ctx.strokeStyle='#3498db';ctx.lineWidth=3;ctx.lineJoin='round';ctx.stroke();
+  ctx.fillStyle='rgba(52,152,219,0.15)';ctx.lineTo(60+(labels.length-1)*step,220);ctx.lineTo(50,220);ctx.fill();
+  labels.forEach((l,i)=>{ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text');ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(l,60+i*step,240);ctx.textAlign='start';});
+}
+
+function drawScatter(id,data){
+  const cv=document.getElementById(id),ctx=cv.getContext('2d');
+  cv.width=cv.parentElement.clientWidth-20;cv.height=280;ctx.clearRect(0,0,cv.width,cv.height);
+  const maxR=Math.max(...data.map(d=>d.x))*1.2,maxY=Math.max(...data.map(d=>d.y))*1.2;
+  const pad=50,w=cv.width-pad*2,h=cv.height-pad*2;
+  ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--border');ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad,pad);ctx.lineTo(pad,cv.height-pad);ctx.lineTo(cv.width-pad,cv.height-pad);ctx.stroke();
+  data.forEach(d=>{
+    const x=pad+(d.x/maxR)*w, y=(cv.height-pad)-(d.y/maxY)*h;
+    ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle='#9b59b6';ctx.fill();
+    ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text');ctx.font='11px sans-serif';ctx.fillText(d.l,x+8,y+4);
+  });
+  ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--text2');ctx.font='10px sans-serif';ctx.fillText('Harga (Rp)',pad,cv.height-10);ctx.fillText('Volume',5,pad+10);
+}
+
+// 📦 UTILS
+function reset(){st={m:'all',c:'all'};document.getElementById('m').value='all';document.getElementById('c').value='all';upd();}
+function expCSV(){
+  let csv="Kategori,Unit,Pendapatan,Kontribusi\n";
+  document.querySelectorAll('#tb tr').forEach(r=>{csv+=Array.from(r.children).map(c=>`"${c.innerText}"`).join(',')+'\n';});
+  const b=new Blob([csv],{type:'text/csv'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`Export_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+function savePos(){localStorage.setItem('dp',JSON.stringify(Array.from(document.getElementById('kpi').children).map(e=>e.innerHTML)));localStorage.setItem('dc',JSON.stringify(Array.from(document.getElementById('chGrid').children).map(e=>e.innerHTML)));alert('✅ Layout tersimpan!');}
+function clearPos(){localStorage.removeItem('dp');localStorage.removeItem('dc');location.reload();}
+
+// 🖱️ DRAG & DROP (NATIVE)
+let dragEl;
+document.addEventListener('dragstart',e=>{if(e.target.draggable){dragEl=e.target;e.dataTransfer.effectAllowed='move';}});
+document.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';});
+document.addEventListener('drop',e=>{e.preventDefault();if(dragEl && e.target.closest('.grid,.kpi')){const cont=e.target.closest('.grid,.kpi');if(cont)cont.appendChild(dragEl);dragEl=null;}});
+
+// 🎛️ EVENTS
+document.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('dp'))document.getElementById('kpi').innerHTML=localStorage.getItem('dp');
+  if(localStorage.getItem('dc'))document.getElementById('chGrid').innerHTML=localStorage.getItem('dc');
+  upd();
+  document.getElementById('m').onchange=e=>{st.m=e.target.value;upd();};
+  document.getElementById('c').onchange=e=>{st.c=e.target.value;upd();};
+  document.querySelectorAll('.tab,.nav a').forEach(b=>b.onclick=()=>{const t=b.dataset.t;document.querySelectorAll('.tab,.nav a').forEach(x=>x.classList.remove('act'));document.querySelectorAll('.pane').forEach(p=>p.classList.remove('act'));b.classList.add('act');document.getElementById(`p-${t}`).classList.add('act');});
+  document.getElementById('thm').onclick=()=>{document.body.classList.toggle('dark');document.getElementById('thm').textContent=document.body.classList.contains('dark')?'☀️':'🌙';upd();};
+});
+</script>
+</body>
+</html>jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.1/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
